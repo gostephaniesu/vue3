@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+    <title>Document</title>
+</head>
+
+<body>
+    <div id="app">
+        <h1>Vue 3 透過函式 setup() return 回模板</h1>
+        <h2>使用 ES6 Proxy 寫 Composition Api</h2>
+        <b>Vue 3 採用 Composition Api 來完成雙向綁定，會更好管理</b>
+
+        <hr>
+
+        <p>先說結論的部分~</p>
+        <div>
+            <button @click="click">Click Me</button>
+            <br>
+            <custom-click
+                v-for="item in lists"
+                :item="item"
+            ></custom-click>
+        </div>
+
+        <ol>
+            <li>
+                <b>好處 1:</b> 不需在 view 顯示的邏輯操作變數，就不需要雙向綁定
+                <pre>
+                    <b>例如 :</b>
+                    const timer = setInterval(()=>{
+                        ... 
+                    }, 1000)
+                </pre>
+            </li>
+            <li>
+                <b>好處 2:</b> 透過 setup return 到模板的變數、方法一目瞭然
+                <pre>
+                    <b>變數lists、方法click:</b>
+                    setup() {
+                        ...
+                        return {
+                            <b>lists,</b>
+                            <b>click</b>
+                        }
+                    }
+                </pre>
+            </li>
+            <li>
+                <b>好處 3:</b> 直接從 Vue global 抓取變數，操作變數不用再 this 了
+                <pre>
+                    methods: {
+                        click() {
+                            <b>this.lists++</b>
+                        }
+                    }
+                    變成
+                    setup() {
+                        <b>const click = () => lists.value++</b>
+                        return {
+                            click
+                        }
+                    }
+                </pre>
+            </li>
+        </ol>
+
+        <hr>
+
+        <section>
+            <p>
+                首先，從 Vue 裡取出 ref() 函式，用解構的方式
+            </p>
+            <pre>
+                const { ref } = Vue;
+            </pre>
+            <p>
+                然後賦值給變數，一個有帶參數的 ref() 函式，等同於在 Vue 2 時定義 data 屬性
+            </p>
+            <pre>
+                const msg = ref('Hello Vue');
+            </pre>
+            <p>
+                被包裹的 ref 物件將參數存在 value 屬性: <b>value: 0</b><br>
+                若直接對變數操作 lists++ 會出錯：
+                <b><small>Uncaught TypeError: Assignment to constant variable.</small></b>
+            </p>
+            <pre>
+                因為 ref 物件長這樣：
+
+                RefImpl {
+                    <b>__v_isR: true</b>
+                    ...
+                    <b>value: 0</b>
+                    或
+                    <b>value: 'Hello Vue'</b>
+                }
+
+                因此這樣寫會出錯
+                click = () => lists++
+                
+
+                應該要改為
+                click = () => lists<b>.value</b>++
+            </pre>
+        </section>
+    </div>
+</body>
+<script src="https://unpkg.com/vue@next"></script>
+
+<script>
+    const { ref } = Vue
+    const app = {
+        setup() {
+            const lists = ref([])
+            const click = () => lists.value++
+            console.log(lists);
+            return {
+                lists,
+                click
+            }
+        },
+        // data() {
+        //     return {
+        //         lists: [999]
+        //     }
+        // },
+
+        // methods: {
+        //     click() {
+        //         this.lists++
+        //     }
+        // }
+    }
+
+    Vue.createApp(app)
+        .component('custom-click', {
+            props: ['item'],
+            template: `<span>Template clicked: {{item}}　</span>`
+        }).mount('#app')
+
+</script>
+
+</html>
